@@ -5,7 +5,9 @@ import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { theme } from '../composables/theme'
 
 // minimal: no control console, field points only show where disturbed
-const props = defineProps({ minimal: Boolean })
+// background: sits behind page content and listens on the window instead
+// avoid: selector for page elements (text, photos) the scent plume stays out of
+const props = defineProps({ minimal: Boolean, background: Boolean, avoid: String })
 
 const channels = reactive([
   { key: 'sight', label: 'Sight', on: true, hint: 'render the field' },
@@ -40,6 +42,7 @@ const readColors = () => {
 
 const SP = 26
 function layout() {
+  if (!host.value) return
   const r = host.value.getBoundingClientRect()
   dpr = Math.min(window.devicePixelRatio || 1, 2)
   w = r.width; h = r.height
@@ -50,9 +53,44 @@ function layout() {
     for (let x = SP / 2; x < w; x += SP) pts.push({ hx: x, hy: y, x, y, vx: 0, vy: 0 })
 }
 
+// Boxes the plume stays out of, in canvas coords
+let quiet = []
+function readQuiet() {
+  if (!props.avoid || !host.value) return
+  const o = host.value.getBoundingClientRect(), P = 14
+  quiet = []
+  for (const el of document.querySelectorAll(props.avoid)) {
+    const b = el.getBoundingClientRect()
+    if (!b.width || b.bottom < o.top || b.top > o.bottom) continue
+    quiet.push({ l: b.left - o.left - P, t: b.top - o.top - P, r: b.right - o.left + P, b: b.bottom - o.top + P })
+  }
+}
+const isQuiet = (x, y) => quiet.some((q) => x > q.l && x < q.r && y > q.t && y < q.b)
+
+// Pulses bounce off the edges: mirror images of the centre across each wall and
+// corner stand in for the reflected fronts.
+const WAVE_SPEED = 5 / 3, BAND = 30
+const fronts = (wv) => {
+  const xs = [wv.x, -wv.x, 2 * w - wv.x], ys = [wv.y, -wv.y, 2 * h - wv.y]
+  return xs.flatMap((x) => ys.map((y) => ({ x, y })))
+}
+// each pulse fades out over this many ms, then is gone
+const WAVE_MS = 3000
+const fade = (wv) => Math.max(0, 1 - (performance.now() - wv.born) / WAVE_MS)
+// Do two rings cross at a point that's on screen?
+const ringsMeet = (a, ra, b, rb) => {
+  const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy)
+  if (!d || d > ra + rb || d < Math.abs(ra - rb)) return false
+  const t = (ra * ra - rb * rb + d * d) / (2 * d), k = Math.sqrt(Math.max(0, ra * ra - t * t))
+  const mx = a.x + (dx * t) / d, my = a.y + (dy * t) / d
+  return [[mx - (dy * k) / d, my + (dx * k) / d], [mx + (dy * k) / d, my - (dx * k) / d]]
+    .some(([x, y]) => x >= 0 && x <= w && y >= 0 && y <= h)
+}
+const pulsesMeet = (a, b) => a.f.some((fa) => b.f.some((fb) => ringsMeet(fa, a.r, fb, b.r)))
+
 function pulse(x, y) {
   if (!ch.value.hearing) return
-  waves.push({ x, y, r: 0 })
+  waves.push({ x, y, r: 0, born: performance.now() })
   stats.pulses++
 }
 
@@ -63,17 +101,25 @@ function emitter() {
   return { x: w * (0.62 + 0.22 * Math.sin(auto.t * 1.3)), y: h * (0.5 + 0.3 * Math.sin(auto.t * 2.1)) }
 }
 
+let tick = 0
 function frame() {
   raf = requestAnimationFrame(frame)
   if (!visible) return
   ctx.clearRect(0, 0, w, h)
+  if (tick++ % 8 === 0) readQuiet()
   const c = ch.value
   const src = emitter()
+  const hushed = isQuiet(src.x, src.y)
   stats.x = Math.round(src.x); stats.y = Math.round(src.y)
 
-  // hearing — expanding rings
-  for (const wv of waves) wv.r += 5
-  waves = waves.filter((wv) => wv.r < Math.max(w, h))
+  // hearing — expanding rings that reflect off the edges
+  for (const wv of waves) { wv.r += WAVE_SPEED; wv.f ??= fronts(wv) }
+  // two pulses that touch anywhere on screen wipe each other out, whatever their strength
+  const hit = new Set()
+  for (let i = 0; i < waves.length; i++)
+    for (let j = i + 1; j < waves.length; j++)
+      if (pulsesMeet(waves[i], waves[j])) hit.add(waves[i]).add(waves[j])
+  waves = waves.filter((wv) => fade(wv) > 0 && !hit.has(wv))
 
   // field points
   const sightA = c.sight ? 1 : 0.12
@@ -88,10 +134,11 @@ function frame() {
       }
     }
     for (const wv of waves) {
-      const dx = p.hx - wv.x, dy = p.hy - wv.y, d = Math.sqrt(dx * dx + dy * dy) || 1
-      const band = d - wv.r
-      if (band > -30 && band < 30) {
-        const f = Math.cos((band / 30) * Math.PI * 0.5) * 2.4 * (1 - wv.r / Math.max(w, h))
+      for (const fr of wv.f) {
+        const dx = p.hx - fr.x, dy = p.hy - fr.y, d = Math.sqrt(dx * dx + dy * dy) || 1
+        const band = d - wv.r
+        if (band <= -BAND || band >= BAND) continue
+        const f = Math.cos((band / BAND) * Math.PI * 0.5) * 2.4 * fade(wv)
         fx += (dx / d) * f; fy += (dy / d) * f
       }
     }
@@ -103,8 +150,8 @@ function frame() {
     ctx.fillRect(p.x - s / 2, p.y - s / 2, s, s)
   }
 
-  // smell — diffusing plume particles
-  if (c.smell) {
+  // smell — diffusing plume particles, held back over text so reading stays calm
+  if (c.smell && !hushed) {
     for (let i = 0; i < 4; i++)
       plume.push({
         x: src.x + (Math.random() - 0.5) * 6, y: src.y + (Math.random() - 0.5) * 6,
@@ -116,7 +163,7 @@ function frame() {
   ctx.fillStyle = col
   for (const q of plume) {
     q.vx += (Math.random() - 0.5) * 0.18; q.vy += (Math.random() - 0.5) * 0.12 - 0.004
-    q.x += q.vx; q.y += q.vy; q.life -= 0.008; q.r += 0.05
+    q.x += q.vx; q.y += q.vy; q.life -= isQuiet(q.x, q.y) ? 0.08 : 0.008; q.r += 0.05
     ctx.globalAlpha = Math.max(0, q.life) * (colors.dark ? 0.55 : 0.85) * (c.sight ? 1 : 0.35)
     ctx.beginPath(); ctx.arc(q.x, q.y, q.r, 0, Math.PI * 2); ctx.fill()
   }
@@ -127,12 +174,25 @@ function frame() {
   // ring outlines
   ctx.strokeStyle = colors.ink; ctx.lineWidth = 1
   for (const wv of waves) {
-    ctx.globalAlpha = 0.25 * (1 - wv.r / Math.max(w, h)) * sightA
-    ctx.beginPath(); ctx.arc(wv.x, wv.y, wv.r, 0, Math.PI * 2); ctx.stroke()
+    ctx.globalAlpha = 0.25 * fade(wv) * sightA
+    const n = Math.max(24, Math.min(360, Math.round((wv.r * Math.PI * 2) / 8)))
+    ctx.beginPath()
+    for (const fr of wv.f) {
+      // skip fronts that don't reach the visible area yet
+      if (fr.x + wv.r < 0 || fr.x - wv.r > w || fr.y + wv.r < 0 || fr.y - wv.r > h) continue
+      let pen = false
+      for (let i = 0; i <= n; i++) {
+        const a = (i / n) * Math.PI * 2, x = fr.x + Math.cos(a) * wv.r, y = fr.y + Math.sin(a) * wv.r
+        const on = x > -2 && x < w + 2 && y > -2 && y < h + 2
+        if (on) pen ? ctx.lineTo(x, y) : ctx.moveTo(x, y)
+        pen = on
+      }
+    }
+    ctx.stroke()
   }
 
   // reticle on the emitter
-  if (props.minimal) { ctx.globalAlpha = 1; return }
+  if (props.minimal || hushed) { ctx.globalAlpha = 1; return }
   ctx.globalAlpha = 0.9 * sightA
   ctx.strokeStyle = colors.ink
   ctx.beginPath()
@@ -146,12 +206,16 @@ function frame() {
 }
 
 const onMove = (e) => {
+  if (!host.value) return
   const r = host.value.getBoundingClientRect()
   mouse.x = e.clientX - r.left; mouse.y = e.clientY - r.top
   mouse.inside = true; mouse.lastMove = performance.now()
 }
 const onLeave = () => (mouse.inside = false)
-const onDown = (e) => { onMove(e); pulse(mouse.x, mouse.y) }
+const onDown = (e) => {
+  if (props.background && e.target.closest?.('a, button, input, textarea, select, label')) return
+  onMove(e); pulse(mouse.x, mouse.y)
+}
 
 let ro, io, reduced
 onMounted(() => {
@@ -159,18 +223,31 @@ onMounted(() => {
   readColors(); layout()
   reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   ro = new ResizeObserver(layout); ro.observe(host.value)
+  if (props.background) {
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerdown', onDown)
+    document.documentElement.addEventListener('pointerleave', onLeave)
+  }
   io = new IntersectionObserver(([e]) => (visible = e.isIntersecting)); io.observe(host.value)
   if (reduced) { frame(); cancelAnimationFrame(raf) } else frame()
   setTimeout(() => pulse(w * 0.62, h * 0.5), 400)
 })
-onUnmounted(() => { cancelAnimationFrame(raf); ro?.disconnect(); io?.disconnect() })
+onUnmounted(() => {
+  cancelAnimationFrame(raf); ro?.disconnect(); io?.disconnect()
+  window.removeEventListener('pointermove', onMove)
+  window.removeEventListener('pointerdown', onDown)
+  document.documentElement.removeEventListener('pointerleave', onLeave)
+})
 watch(theme, () => requestAnimationFrame(readColors))
 </script>
 
 <template>
-  <div class="sf">
+  <div class="sf" :class="{ bg: background }">
+    <div v-if="background" ref="host" class="stage" aria-hidden="true">
+      <canvas ref="canvas" />
+    </div>
     <div
-      ref="host" class="stage"
+      v-else ref="host" class="stage"
       @pointermove="onMove" @pointerleave="onLeave" @pointerdown="onDown"
       aria-label="Interactive sensor field. Move the pointer to steer the scent plume, click to send a sound pulse."
       role="img"
@@ -178,7 +255,7 @@ watch(theme, () => requestAnimationFrame(readColors))
       <canvas ref="canvas" />
     </div>
 
-    <div v-if="!minimal" class="console panel reg">
+    <div v-if="!minimal && !background" class="console panel reg">
       <div class="crow">
         <span class="label">Sense channels</span>
         <span class="mono act">{{ active }}/5 active</span>
@@ -205,6 +282,7 @@ watch(theme, () => requestAnimationFrame(readColors))
 .sf { position: absolute; inset: 0; }
 .stage { position: absolute; inset: 0; cursor: crosshair; touch-action: pan-y; }
 canvas { width: 100%; height: 100%; display: block; }
+.bg { position: fixed; z-index: -1; pointer-events: none; }
 
 .console {
   position: absolute; right: var(--gutter); bottom: 28px;

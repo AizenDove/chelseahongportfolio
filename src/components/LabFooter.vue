@@ -20,7 +20,7 @@ const copy = async () => {
     <div class="wrap">
       <div class="cta">
         <p class="hand say">say hej ↓</p>
-        <h2 class="display big">Got a project or a question?<br />I’d love to hear it.</h2>
+        <h2 class="display big">Got a project or a question?<br />I’d love to smell it.</h2>
         <p class="sub2">Email is the easiest way to reach me: <a :href="`mailto:${profile.email}`">{{ profile.email }}</a>.</p>
         <div class="row">
           <a class="btn" :href="`mailto:${profile.email}`">Email me <span class="arrow">→</span></a>

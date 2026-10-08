@@ -522,50 +522,6 @@ export const projects = [
   },
 
   {
-    slug: 'business-tech-to-consumers',
-    code: 'Pico 4 Enterprise',
-    group: 'vr',
-    title: 'Business Tech To Consumers',
-    headline: 'Repurposing business hardware for consumers',
-    note: 'a second life for a locked headset',
-    tagline: 'Giving enterprise-locked VR headsets a second life',
-    summary:
-      'Custom software that bypasses enterprise roadblocks on the Pico 4 Enterprise and restores consumer functionality via SteamVR.',
-    domains: ['VR', 'Hardware'],
-    status: 'Shipped',
-    year: null,
-    cover: null,
-    accent: '#b69cff',
-    specs: [
-      ['Hardware', 'Pico 4 Enterprise'],
-      ['Target', 'SteamVR + PC'],
-      ['Goal', 'Extend device lifespan'],
-    ],
-    sections: [
-      {
-        id: 'about',
-        title: 'About',
-        blocks: [
-          {
-            t: 'lead',
-            x: 'This project focuses on repurposing business-only VR hardware for consumer use, creating a bridge between two markets that are usually kept strictly separate.',
-          },
-          {
-            t: 'p',
-            x: 'The Pico 4 Enterprise is a headset designed exclusively for corporate environments and locked behind enterprise software restrictions. While technically powerful, these devices are often discarded once business support ends.',
-          },
-          {
-            t: 'p',
-            x: 'I developed custom software solutions that bypass enterprise roadblocks and restore core consumer functionality, allowing the hardware to be used for consumer VR experiences using SteamVR with an additional computer. This gives the device a second life, extending its usability beyond its original business context.',
-          },
-          { t: 'flow', items: ['Enterprise-locked headset', 'Custom software', 'SteamVR via PC', 'Second life'] },
-          { t: 'links', items: [{ label: 'Learn more — full guide', href: 'https://sites.google.com/view/aizendovepico4e/home' }] },
-        ],
-      },
-    ],
-  },
-
-  {
     slug: 'expconnect',
     code: 'Card game',
     group: 'projects',
@@ -974,7 +930,7 @@ export const profile = {
     { x: 'Pole is not neutral equipment. It carries history, stigma, and physical demands.', from: 'vr-pole-dancers', ctx: 'why VRPD is built around safety' },
     { x: 'Learning to let go of a well-known framework in favor of a more fitting structure was a key takeaway.', from: 'expconnect', ctx: 'on cutting the UNO version' },
   ],
-  competencies: ['Unity', 'Unreal Engine', 'Blender', 'C#', 'Inventor', 'SolidWorks'],
+  competencies: ['Unity', 'Unreal Engine', 'Blender', 'C#', 'Inventor', 'SolidWorks', 'Microcontrollers'],
   education: [
     { years: '2025 – 2027', title: 'Master’s Degree in Experience Design', org: 'Halmstad University', now: true },
     { years: '2022 – 2025', title: 'Bachelor’s Degree in Design of Digital and Immersive Experiences', org: 'Blekinge Institute of Technology' },

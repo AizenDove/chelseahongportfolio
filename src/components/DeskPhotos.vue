@@ -6,7 +6,8 @@ import { useRouter } from 'vue-router'
 const m = (f) => `${import.meta.env.BASE_URL}media/${f}`
 const router = useRouter()
 
-const photos = reactive([
+const props = defineProps({ items: Array })
+const photos = reactive(props.items?.map((p) => ({ ...p })) ?? [
   { src: m('home-12.webp'), cap: 'the scent rig, mid-build', to: 'olfactory', x: 6, y: 4, r: -5, w: 46 },
   { src: m('expconnect-11.webp'), cap: 'EXP Connect, boxed!', to: 'expconnect', x: 50, y: 0, r: 4, w: 44 },
   { src: m('vr-pole-dancers-01.webp'), cap: 'live mocap, no animation', to: 'vr-pole-dancers', x: 54, y: 46, r: -3, w: 40 },
@@ -49,7 +50,7 @@ const up = () => {
       <img :src="p.src" :alt="p.cap" draggable="false" />
       <figcaption class="hand">{{ p.cap }}</figcaption>
     </figure>
-    <p class="hint hand">psst — you can move these ↷</p>
+    <p class="hint hand"></p>
   </div>
 </template>
 

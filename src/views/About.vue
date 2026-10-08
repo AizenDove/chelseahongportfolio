@@ -1,5 +1,5 @@
 <script setup>
-import { profile, projects, bySlug } from '../data/projects'
+import { profile, bySlug } from '../data/projects'
 import { openLightbox } from '../composables/lightbox'
 import { vReveal } from '../composables/reveal'
 
@@ -14,11 +14,7 @@ const threads = [
   { k: 'Access', x: 'A reliable preview of a place, so people with accessibility needs don’t meet surprise obstacles.', to: ['vr-looking-glass'], c: 'var(--sage)' },
   { k: 'Belonging', x: 'Games that encourage people to open up, at their own comfort level.', to: ['expconnect'], c: 'var(--butter)' },
   { k: 'Safe spaces', x: 'Safe training spaces with real structure and standards, inside and outside VR.', to: ['vr-pole-dancers'], c: 'var(--rose)' },
-  { k: 'Second lives', x: 'Giving enterprise hardware a second life after business support ends.', to: ['business-tech-to-consumers'], c: 'var(--sage)' },
 ]
-
-const usedIn = (tool) =>
-  projects.filter((p) => p.specs.some(([, v]) => v.includes(tool))).map((p) => p.title)
 </script>
 
 <template>
@@ -36,16 +32,9 @@ const usedIn = (tool) =>
           lately that means combining smell with VR to make it more immersive.
         </p>
         <p>
-          My path here wasn’t a straight line. I went to a technology high school in Ludvika, then trained as a
-          high school engineer in technology. From 2019 to 2025 I worked as a storage manager at Spendrups. During
-          those same years I took game design courses at Luleå University of Technology and did my bachelor’s in
-          Design of Digital and Immersive Experiences at Blekinge Institute of Technology. That’s where the
-          olfactory research started, and it ended up published at GALA 2025.
+
         </p>
         <p>
-          Now I’m doing a master’s in Experience Design at Halmstad University. Outside school I’ve been part of
-          <RouterLink to="/experiments/vr-pole-dancers">VR Pole Dancers</RouterLink> since November 2022. I joined
-          as a participant, became a trainer, and today I’m staff and a consultant.
         </p>
       </div>
       <figure class="snap" v-reveal="100">
@@ -76,7 +65,6 @@ const usedIn = (tool) =>
         <ul class="tools">
           <li v-for="c in profile.competencies" :key="c">
             <b>{{ c }}</b>
-            <span v-if="usedIn(c).length">{{ usedIn(c).join(', ') }}</span>
           </li>
         </ul>
       </div>
@@ -126,7 +114,6 @@ const usedIn = (tool) =>
 .tools { list-style: none; margin: 0; padding: 0; }
 .tools li { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); }
 .tools b { font-weight: 600; }
-.tools span { color: var(--muted); font-size: 14px; text-align: right; }
 .tl { list-style: none; margin: 0; padding: 0; }
 .tl li { display: grid; grid-template-columns: 110px 1fr; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line); }
 .yr { font-size: 14px; color: var(--muted); padding-top: 2px; font-variant-numeric: tabular-nums; }
