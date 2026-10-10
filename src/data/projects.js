@@ -522,6 +522,99 @@ export const projects = [
   },
 
   {
+    slug: 'toolkitosc-esp32',
+    code: 'TKOSC',
+    group: 'vr',
+    title: 'ToolKitOSC ESP32',
+    headline: 'Bringing smell to VRChat',
+    note: '',
+    tagline: 'From avatar parameters to real-world scent hardware',
+    summary:
+      'Firmware that lets ToolKitOSC drive an ESP32 from VRChat avatar parameters. I was part of the ideation, and built the scent hardware that plugs into it.',
+    domains: ['VR', 'Hardware'],
+    status: 'Ongoing',
+    year: '2026',
+    cover: null,
+    accent: '#8fd3ff',
+    specs: [
+      ['Role', 'Ideation · scent hardware'],
+      ['Firmware', 'NekoTiki'],
+      ['Stack', 'VRChat OSC · WebSocket · ESP32'],
+      ['License', 'GPL-3.0'],
+    ],
+    sections: [
+      {
+        id: 'about',
+        title: 'About',
+        blocks: [
+          {
+            t: 'lead',
+            x: 'ToolKitOSC ESP32 lets a VRChat avatar switch real things: fans, LEDs, solenoids, relays. The ToolKitOSC app reads the avatar’s parameters and sends them over Wi-Fi to an ESP32 board, which switches the hardware.',
+          },
+          {
+            t: 'p',
+            x: 'The code is NekoTiki’s. As the project took shape, the idea of putting an ESP32 on the other end came from me. My own part to build was the scent hardware that hangs off the board.',
+          },
+          { t: 'flow', items: ['VRChat', 'OSC', 'ToolKitOSC', 'WebSocket', 'ESP32', 'MOSFET', 'Scent'] },
+          { t: 'links', items: [{ label: 'ToolKitOSC ESP32 on GitHub', href: 'https://github.com/NekoTiki/ToolKitOSC-ESP32' }] },
+        ],
+      },
+      {
+        id: 'phases',
+        title: 'Phases',
+        blocks: [
+          {
+            t: 'pillars',
+            items: [
+              {
+                k: 'Avatar to app',
+                x: 'VRChat already sends avatar parameters out over OSC. ToolKitOSC listens for them and decides what each one should do.',
+              },
+              {
+                k: 'A board on the other end',
+                x: 'To reach the physical world the app needed something cheap, small and wireless to talk to. An ESP32 fits: Wi-Fi built in, enough pins for a handful of outputs, and no cable back to the PC. It announces itself on the network, so the app finds it without typing an address.',
+              },
+              {
+                k: 'Outputs that switch themselves off',
+                x: 'Anything that runs a fan or a pump near someone’s face has to fail safe. Every “on” carries its own deadline, each output has a max on-time, and if the app goes quiet for 3 seconds or the Wi-Fi drops, everything turns off.',
+              },
+              {
+                k: 'Scent in VRChat',
+                x: 'With the bridge in place, the scent hardware from my olfactory research could move out of Unity prototypes and into a social VR platform people already use.',
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: 'scent',
+        title: 'Smell sensing in VRChat',
+        blocks: [
+          {
+            t: 'p',
+            x: 'The scent side builds a complete reworked design KVX. Each scent sits in its own capsule with a small fan behind it. The fans are switched by the ESP32 through logic-level MOSFETs, on their own supply with a shared ground, since a GPIO pin can’t power a fan by itself.',
+          },
+          {
+            t: 'grid',
+            items: [
+              { k: 'Trigger', v: ['Avatar contact or menu toggle', 'Sets a parameter in VRChat'] },
+              { k: 'Bridge', v: ['ToolKitOSC maps parameter → pin', 'Sends a pulse over WebSocket'] },
+              { k: 'Board', v: ['ESP32 times the pulse itself', 'Shuts off on its own deadline'] },
+              { k: 'Hardware', v: ['MOSFET per capsule', 'Fan pushes air past the scent'] },
+            ],
+          },
+          { t: 'flow', items: ['Touch a flower in VRChat', 'Parameter flips', 'Pulse on the scent pin', 'Short burst of scent'] },
+          {
+            t: 'note',
+            k: 'Why pulses',
+            x: 'Scent lingers in a room much longer than a light or a sound. Short pulses with a hard max on-time keep it to a hint that matches the moment, instead of a room that slowly fills up.',
+          },
+        ],
+      },
+    ],
+  },
+
+  {
     slug: 'expconnect',
     code: 'Card game',
     group: 'projects',

@@ -75,18 +75,8 @@ const fronts = (wv) => {
   return xs.flatMap((x) => ys.map((y) => ({ x, y })))
 }
 // each pulse fades out over this many ms, then is gone
-const WAVE_MS = 3000
+const WAVE_MS = 5000
 const fade = (wv) => Math.max(0, 1 - (performance.now() - wv.born) / WAVE_MS)
-// Do two rings cross at a point that's on screen?
-const ringsMeet = (a, ra, b, rb) => {
-  const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy)
-  if (!d || d > ra + rb || d < Math.abs(ra - rb)) return false
-  const t = (ra * ra - rb * rb + d * d) / (2 * d), k = Math.sqrt(Math.max(0, ra * ra - t * t))
-  const mx = a.x + (dx * t) / d, my = a.y + (dy * t) / d
-  return [[mx - (dy * k) / d, my + (dx * k) / d], [mx + (dy * k) / d, my - (dx * k) / d]]
-    .some(([x, y]) => x >= 0 && x <= w && y >= 0 && y <= h)
-}
-const pulsesMeet = (a, b) => a.f.some((fa) => b.f.some((fb) => ringsMeet(fa, a.r, fb, b.r)))
 
 function pulse(x, y) {
   if (!ch.value.hearing) return
@@ -114,12 +104,7 @@ function frame() {
 
   // hearing — expanding rings that reflect off the edges
   for (const wv of waves) { wv.r += WAVE_SPEED; wv.f ??= fronts(wv) }
-  // two pulses that touch anywhere on screen wipe each other out, whatever their strength
-  const hit = new Set()
-  for (let i = 0; i < waves.length; i++)
-    for (let j = i + 1; j < waves.length; j++)
-      if (pulsesMeet(waves[i], waves[j])) hit.add(waves[i]).add(waves[j])
-  waves = waves.filter((wv) => fade(wv) > 0 && !hit.has(wv))
+  waves = waves.filter((wv) => fade(wv) > 0)
 
   // field points
   const sightA = c.sight ? 1 : 0.12
